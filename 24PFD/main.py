@@ -1,0 +1,127 @@
+import websockets
+import asyncio
+URI = "wss://24data.ptfs.app/wss"
+import json
+import time
+import math
+
+def pitchmatch(oldaltitude, altitude, dt):
+    if dt == 0:
+        return 0.0
+    vertical_speed = (altitude - oldaltitude) / dt  # feet per second
+    pitch_angle = vertical_speed / (testACdata['groundSpeed'] * 1.68781)  # Convert groundspeed from knots to feet per second
+    pitch_angle_degrees = pitch_angle * (180 / 3.14159)  # Convert radians to degrees
+    return pitch_angle_degrees
+
+
+testcallsign = "Jester-1653"
+testACdata = {
+    "callsign": "unknown",
+    "aircraftType": "unknown",
+    "altitude": 0,
+    "groundSpeed": 0,
+    "heading": 0,
+    "latitude": 0.0,
+    "longitude": 0.0,
+
+    "oldcallsign": "unknown",
+    "oldaircraftType": "unknown",
+    "oldaltitude": 0,
+    "oldgroundSpeed": 0,
+    "oldheading": 0,
+    "oldlatitude": 0.0,
+    "oldlongitude": 0.0
+}
+dt = 1.0  # Initial delta time
+
+def vertical_speed_calculation(altitude, oldaltitude, dt):  # Beräknar vertikal hastighet i fots per sekund
+    vertical_speed_fps = (
+        altitude - oldaltitude
+        ) / dt
+    print(f"Vertical Speed: {vertical_speed_fps} feet per second")
+    return vertical_speed_fps
+
+def forward_speed_fps_calculation(groundSpeed): 
+    global groundspeed_studs_s 
+    groundspeed_studs_s = groundSpeed * 0.5442765
+    forward_speed_fps = groundspeed_studs_s * 1.8372
+    print(f"Forward Speed: {forward_speed_fps} feet per second")
+    return forward_speed_fps
+
+def pitch_angle_calculation(vertical_speed_fps, forward_speed_fps):
+    pitch_rad = math.atan2(vertical_speed_fps, forward_speed_fps)
+    pitch_deg = math.degrees(pitch_rad)
+    print(f"Pitch Angle: {pitch_deg} degrees")
+
+def bank_angle(heading, oldheading, dt):
+    delta_heading = (
+    (testACdata["heading"] - testACdata["oldheading"] + 180) % 360
+    ) - 180
+    turn_rate_deg_s = delta_heading / dt
+    turn_rate_rad_s = math.radians(turn_rate_deg_s)
+    speed_m_s = groundspeed_studs_s * 0.28
+
+    g = 9.81
+    roll_rad = math.atan((turn_rate_rad_s * speed_m_s) / g)
+    roll_deg = math.degrees(roll_rad)
+    return roll_deg
+
+
+ 
+
+
+async def listen():     # Listen for incoming WebSocket messages
+    async with websockets.connect(URI) as ws:
+        async for message in ws:
+            #print(message)
+            handle_packet(message)
+            vertical_speed_calculation(testACdata['altitude'], testACdata['oldaltitude'], dt)
+            forward_speed_fps_calculation(testACdata['groundSpeed'])
+            pitch_angle_calculation(
+                vertical_speed_calculation(testACdata['altitude'], testACdata['oldaltitude'], dt),
+                forward_speed_fps_calculation(testACdata['groundSpeed'])
+            )
+            bank_angle(testACdata['heading'], testACdata['oldheading'], dt)
+            
+def handle_packet(raw):   # Process incoming WebSocket message
+    data = json.loads(raw)
+    for datatype, content in data.items():
+        update_aircraft(datatype, content)
+
+def update_aircraft(datatype, content): #denna funktion uppdaterar aircraft data varje sekund 
+    #print (f"Updating aircraft {datatype} with data: {content}")
+    if datatype == "d":
+        for callsign, aircraft in content.items(): #Tar datan från varje specifikt flygplan
+            if callsign == testcallsign:
+                print(f"Processing data for aircraft {callsign}")
+                print(aircraft['aircraftType'])
+                print(aircraft['altitude'])
+                print(aircraft['groundSpeed'])
+                print(aircraft['heading'])
+                print(aircraft['position']['y'])
+                print(aircraft['position']['x'])
+                #print(aircraft['callsign'])
+
+                testACdata["oldtime"] = testACdata["time"]
+                testACdata["time"] = time.time()
+
+                testACdata.update(oldaltitude = testACdata['altitude']) #Gamla värden sparas
+                testACdata.update(oldgroundSpeed = testACdata['groundSpeed'])
+                testACdata.update(oldheading = testACdata['heading'])
+                testACdata.update(oldlatitude = testACdata['latitude'])
+                testACdata.update(oldlongitude = testACdata['longitude'])
+                testACdata.update(oldcallsign = testACdata['callsign'])
+
+                testACdata.update(altitude = aircraft['altitude'])  #Nya värden sparas
+                testACdata.update(groundSpeed = aircraft['groundSpeed'])
+                testACdata.update(heading = aircraft['heading'])
+                testACdata.update(latitude = aircraft['position']['y'])
+                testACdata.update(longitude = aircraft['position']['x'])
+                #testACdata.update(callsign = aircraft['callsign'])
+                global dt
+                dt = testACdata["time"] - testACdata["oldtime"]
+                return dt
+
+
+
+asyncio.run(listen())

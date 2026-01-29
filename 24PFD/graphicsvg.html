@@ -1,0 +1,80 @@
+<html>
+<head>
+<title>24PFD</title>
+</head>
+<body>
+
+<h1>This will be a pfd in the foreseeable future</h1>
+
+<svg width="800" height="800"
+     viewBox="-400 -400 800 800"
+     style="border:1px solid black; background:gray">
+
+  <g id="attitude">
+
+    <!-- Himmel -->
+    <rect x="-800" y="-800" width="1600" height="800" fill="skyblue"/>
+
+    <!-- Mark -->
+    <rect x="-800" y="0" width="1600" height="800" fill="sienna"/>
+
+    <!-- Horisont -->
+    <line x1="-800" y1="0" x2="800" y2="0"
+          stroke="white" stroke-width="5"/>
+
+    <!-- Pitch marks -->
+    <g id="pitch_marks">
+      <line x1="-200" y1="-50" x2="200" y2="-50" stroke="white"
+      stroke-width="5"/>
+      <line x1="-160" y1="-100" x2="160" y2="-100" stroke="white"
+      stroke-width="5"/>
+      <line x1="-300" y1="150" x2="300" y2="150" stroke="white"
+      stroke-width="5"/>
+      <line x1="-300" y1="-150" x2="300" y2="-150" stroke="white"
+      stroke-width="5"/>
+      <line x1="-200" y1="50" x2="200" y2="50" stroke="white"
+      stroke-width="5"/>
+      <line x1="-160" y1="100" x2="160" y2="100" stroke="white"
+        stroke-width="5"/>
+    </g>
+
+  </g>
+  <g id ="airplane_symbol">
+    <line x1="-100" y1="0" x2="-10" y2="0" stroke="yellow"
+      stroke-width="5"/>
+    <line x1="0" y1="-5" x2="0" y2="5" stroke="yellow"
+      stroke-width="5"/>
+      <line x1="100" y1="0" x2="10" y2="0" stroke="yellow"
+      stroke-width="5"/>
+</svg>
+
+
+<script>
+let pitch = 0;
+let roll = 0;
+let PX_PER_DEG = 5;
+
+const attitude = document.getElementById("attitude");
+
+function update() {
+    const pitch_px = pitch * PX_PER_DEG;
+
+    attitude.setAttribute(
+        "transform",
+        `translate(0, ${+pitch_px}) rotate(${+roll})`
+    ); 
+}
+<!--
+setInterval(() => {
+    pitch -= 0.3;
+    roll += 0.1;
+    pitch = Math.max(-30, Math.min(30, pitch));
+    roll = Math.max(-30, Math.min(30, roll));
+    update();
+    
+}, 50);
+-->
+
+</script
+</body>
+</html>
