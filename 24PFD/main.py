@@ -126,7 +126,6 @@ def update_aircraft(datatype, content): #denna funktion uppdaterar aircraft data
                     return dt
         except Exception as e:
             print(f"Error processing aircraft data: {e}")
-            global dt
             return dt
             
 async def main():
