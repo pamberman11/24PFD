@@ -50,9 +50,43 @@
 
 
 <script>
-let pitch = 0;
-let roll = 0;
-let PX_PER_DEG = 5;
+function handleData(data) {
+  aircraftState.pitch = data.pitch;
+  aircraftState.roll  = data.roll;
+  aircraftState.heading = data.heading;
+  aircraftState.altitude = data.altitude;
+}
+
+
+let aircraftState = {
+  pitch: 0,
+  roll: 0,
+  heading: 0,
+  altitude: 0
+};
+
+const ws = new WebSocket("ws://localhost:8765"); // WS url till backend
+ws.onopen = () => {
+    console.log("connected to backend");
+};
+ws.onmessage = (event) => {  // Tar hand om inkommande meddelanden
+  const data = JSON.parse(event.data);
+  pitch = data.pitch_angle_degrees;
+  roll = data.roll_deg;
+  console.log(data);
+  handleData(data);
+  update();
+};
+ws.onclose = () => {   // Hanterar stängning av anslutning
+    console.log("disconnected from backend");
+};
+ws.onerror = (err) => {  // loggar om det blir ett fel med WS
+  console.error("WS error", err);
+}
+
+
+
+let PX_PER_DEG = 5
 
 const attitude = document.getElementById("attitude");
 
@@ -64,17 +98,16 @@ function update() {
         `translate(0, ${+pitch_px}) rotate(${+roll})`
     ); 
 }
-<!--
-setInterval(() => {
-    pitch -= 0.3;
-    roll += 0.1;
-    pitch = Math.max(-30, Math.min(30, pitch));
-    roll = Math.max(-30, Math.min(30, roll));
-    update();
-    
-}, 50);
--->
 
-</script
+//setInterval(() => {   For testing without backend
+    //aircraftState.pitch -= 0.3;
+    //aircraftState.roll += 0.1;
+    //aircraftState.pitch = Math.max(-30, Math.min(30, aircraftState.pitch));
+    //aircraftState.roll = Math.max(-30, Math.min(30, aircraftState.roll));
+    //update();
+    
+//}, 50);
+
+</script>
 </body>
 </html>
