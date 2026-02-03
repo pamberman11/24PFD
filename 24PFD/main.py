@@ -8,13 +8,13 @@ import back_front_ws # Import the back_front_ws module
 
 def pitchmatch(oldaltitude, altitude, dt):
     vertical_speed = (altitude - oldaltitude) / dt  # feet per second
-    pitch_angle = vertical_speed / (testACdata['groundSpeed'] * 1.68781)  # Convert groundspeed from knots to feet per second
+    pitch_angle = vertical_speed / (ACdata['groundSpeed'] * 1.68781)  # Convert groundspeed from knots to feet per second
     pitch_angle_degrees = pitch_angle * (180 / 3.14159)  # Convert radians to degrees
     return pitch_angle_degrees
 
 
 testcallsign = "Havoc-6283"
-testACdata = {
+ACdata = {
     "callsign": "unknown",
     "aircraftType": "unknown",
     "altitude": 0,
@@ -56,7 +56,7 @@ def pitch_angle_calculation(vertical_speed_fps, forward_speed_fps):
 
 def bank_angle(heading, oldheading, dt):
     delta_heading = (
-    (testACdata["heading"] - testACdata["oldheading"] + 180) % 360
+    (ACdata["heading"] - ACdata["oldheading"] + 180) % 360
     ) - 180
     turn_rate_deg_s = delta_heading / dt
     turn_rate_rad_s = math.radians(turn_rate_deg_s)
@@ -76,13 +76,13 @@ async def listen():     # Listen for incoming WebSocket messages
         async for message in ws:
             #print(message)
             handle_packet(message)
-            vertical_speed_calculation(testACdata['altitude'], testACdata['oldaltitude'], dt)
-            forward_speed_fps_calculation(testACdata['groundSpeed'])
+            vertical_speed_calculation(ACdata['altitude'], ACdata['oldaltitude'], dt)
+            forward_speed_fps_calculation(ACdata['groundSpeed'])
             pitch_angle_calculation(
-                vertical_speed_calculation(testACdata['altitude'], testACdata['oldaltitude'], dt),
-                forward_speed_fps_calculation(testACdata['groundSpeed'])
+                vertical_speed_calculation(ACdata['altitude'], ACdata['oldaltitude'], dt),
+                forward_speed_fps_calculation(ACdata['groundSpeed'])
             )
-            bank_angle(testACdata['heading'], testACdata['oldheading'], dt)
+            bank_angle(ACdata['heading'], ACdata['oldheading'], dt)
 
 def handle_packet(raw):   # Process incoming WebSocket message
     data = json.loads(raw)
@@ -105,21 +105,21 @@ def update_aircraft(datatype, content): #denna funktion uppdaterar aircraft data
                     #print(aircraft['callsign'])
 
                     #testACdata["oldtime"] = testACdata["time"]
-                    testACdata["time"] = time.time()
+                    ACdata["time"] = time.time()
 
-                    testACdata.update(oldaltitude = testACdata['altitude']) #Gamla värden sparas
-                    testACdata.update(oldgroundSpeed = testACdata['groundSpeed'])
-                    testACdata.update(oldheading = testACdata['heading'])
-                    testACdata.update(oldlatitude = testACdata['latitude'])
-                    testACdata.update(oldlongitude = testACdata['longitude'])
-                    testACdata.update(oldcallsign = testACdata['callsign'])
+                    ACdata.update(oldaltitude = ACdata['altitude']) #Gamla värden sparas
+                    ACdata.update(oldgroundSpeed = ACdata['groundSpeed'])
+                    ACdata.update(oldheading = ACdata['heading'])
+                    ACdata.update(oldlatitude = ACdata['latitude'])
+                    ACdata.update(oldlongitude = ACdata['longitude'])
+                    ACdata.update(oldcallsign = ACdata['callsign'])
 
-                    testACdata.update(altitude = aircraft['altitude'])  #Nya värden sparas
-                    testACdata.update(groundSpeed = aircraft['groundSpeed'])
-                    testACdata.update(heading = aircraft['heading'])
-                    testACdata.update(latitude = aircraft['position']['y'])
-                    testACdata.update(longitude = aircraft['position']['x'])
-                    #testACdata.update(callsign = aircraft['callsign'])
+                    ACdata.update(altitude = aircraft['altitude'])  #Nya värden sparas
+                    ACdata.update(groundSpeed = aircraft['groundSpeed'])
+                    ACdata.update(heading = aircraft['heading'])
+                    ACdata.update(latitude = aircraft['position']['y'])
+                    ACdata.update(longitude = aircraft['position']['x'])
+                    #ACdata.update(callsign = aircraft['callsign'])
                     global dt
                     dt = 1
 
