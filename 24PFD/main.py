@@ -1,3 +1,4 @@
+from email.mime import message
 import websockets
 import asyncio
 URI = "wss://24data.ptfs.app/wss"
@@ -12,24 +13,35 @@ def pitchmatch(oldaltitude, altitude, dt):
     pitch_angle_degrees = pitch_angle * (180 / 3.14159)  # Convert radians to degrees
     return pitch_angle_degrees
 
+def update_aircraftt(datatype, content): #denna funktion uppdaterar aircraft data varje sekund
+    if datatype == "d":
+        try:
+            for callsign, aircraft in content.items(): #Tar datan från varje specifikt flygplan
+                if callsign in ACdata:
+                    print(f"Processing data for aircraft {callsign}")
+                    print(ACdata[callsign])
+                else:
+                    ACdata[callsign] = new_aircraft_state()
+        except Exception as e:
+            print(f"Error processing aircraft data: {e}")
+
+def new_aircraft_state():
+    return {
+        "altitude": 0,
+        "heading": 0,
+        "groundSpeed": 0,
+
+        "prev_altitude": 0,
+        "prev_heading": 0,
+        "prev_time": time.time(),
+
+        "pitch": 0,
+        "roll": 0
+    }
 
 testcallsign = "Havoc-6283"
 ACdata = {
-    "callsign": "unknown",
-    "aircraftType": "unknown",
-    "altitude": 0,
-    "groundSpeed": 0,
-    "heading": 0,
-    "latitude": 0.0,
-    "longitude": 0.0,
-
-    "oldcallsign": "unknown",
-    "oldaircraftType": "unknown",
-    "oldaltitude": 0,
-    "oldgroundSpeed": 0,
-    "oldheading": 0,
-    "oldlatitude": 0.0,
-    "oldlongitude": 0.0
+    "null": None,
 }
 dt = 1.0  # Initial delta time
 
@@ -76,18 +88,23 @@ async def listen():     # Listen for incoming WebSocket messages
         async for message in ws:
             #print(message)
             handle_packet(message)
-            vertical_speed_calculation(ACdata['altitude'], ACdata['oldaltitude'], dt)
-            forward_speed_fps_calculation(ACdata['groundSpeed'])
-            pitch_angle_calculation(
-                vertical_speed_calculation(ACdata['altitude'], ACdata['oldaltitude'], dt),
-                forward_speed_fps_calculation(ACdata['groundSpeed'])
-            )
-            bank_angle(ACdata['heading'], ACdata['oldheading'], dt)
+            
+                
+            #vertical_speed_calculation(ACdata['altitude'], ACdata['oldaltitude'], dt)
+            #forward_speed_fps_calculation(ACdata['groundSpeed'])
+            #pitch_angle_calculation(
+                #vertical_speed_calculation(ACdata['altitude'], ACdata['oldaltitude'], dt),
+                #forward_speed_fps_calculation(ACdata['groundSpeed'])
+            #)
+            #bank_angle(ACdata['heading'], ACdata['oldheading'], dt)
 
 def handle_packet(raw):   # Process incoming WebSocket message
     data = json.loads(raw)
     for datatype, content in data.items():
-        update_aircraft(datatype, content)
+        update_aircraftt(datatype, content=content)
+    #for datatype, content in data.items():
+        #update_aircraft(datatype, content)
+                    
 
 def update_aircraft(datatype, content): #denna funktion uppdaterar aircraft data varje sekund 
     #print (f"Updating aircraft {datatype} with data: {content}")
