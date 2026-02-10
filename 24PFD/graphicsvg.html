@@ -6,6 +6,10 @@
 
 <h1>This will be a pfd in the foreseeable future</h1>
 
+<label>Callsign:</label>
+<input id="callsignInput" type="text" placeholder="Apollo-3935">
+<button onclick="setCallsign()">Visa</button>
+
 <svg width="800" height="800"
      viewBox="-400 -400 800 800"
      style="border:1px solid black; background:gray">
@@ -46,17 +50,30 @@
       stroke-width="5"/>
       <line x1="100" y1="0" x2="10" y2="0" stroke="yellow"
       stroke-width="5"/>
+      </g>
 </svg>
 
-
 <script>
-function handleData(data) {
-  aircraftState.pitch = data.pitch;
-  aircraftState.roll  = data.roll;
-  aircraftState.heading = data.heading;
-  aircraftState.altitude = data.altitude;
+
+function setCallsign() {
+  activeCallsign =
+    document.getElementById("callsignInput").value.trim();
+
+  //if (!data[activeCallsign]) {
+  //console.log("No such aircraft yet");
+  //return;
+//}
+  console.log("Tracking:", activeCallsign);
 }
 
+let activeCallsign = null;
+
+ // function handleData(data) {
+  //aircraftState.pitch = data.pitch;
+  //aircraftState.roll  = data.roll;
+  //aircraftState.heading = data.heading;
+  //aircraftState.altitude = data.altitude;
+//}
 
 let aircraftState = {
   pitch: 0,
@@ -71,10 +88,14 @@ ws.onopen = () => {
 };
 ws.onmessage = (event) => {  // Tar hand om inkommande meddelanden
   const data = JSON.parse(event.data);
-  pitch = data.pitch_angle_degrees;
-  roll = data.roll_deg;
-  console.log(data);
-  handleData(data);
+
+  if (!activeCallsign) return;
+  if (!data[activeCallsign]) return;
+
+  aircraftState.pitch = data[activeCallsign].pitch;
+  aircraftState.roll  = data[activeCallsign].roll;
+
+  //handleData(data);
   update();
 };
 ws.onclose = () => {   // Hanterar stängning av anslutning
@@ -84,19 +105,17 @@ ws.onerror = (err) => {  // loggar om det blir ett fel med WS
   console.error("WS error", err);
 }
 
-
-
 let PX_PER_DEG = 5
 
 const attitude = document.getElementById("attitude");
 
 function update() {
-    const pitch_px = pitch * PX_PER_DEG;
+  const pitch_px = aircraftState.pitch * PX_PER_DEG;
 
-    attitude.setAttribute(
-        "transform",
-        `translate(0, ${+pitch_px}) rotate(${+roll})`
-    ); 
+  attitude.setAttribute(
+    "transform",
+    `translate(0, ${pitch_px}) rotate(${aircraftState.roll})`
+  );
 }
 
 //setInterval(() => {   For testing without backend
