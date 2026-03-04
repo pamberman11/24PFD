@@ -26,16 +26,18 @@ def update_aircraftt(datatype, content, dt): #this funciton updates the aircraft
         try: 
             #print("Content received:", content)
             for callsign, aircraft in content.items(): #take data for each specific aircraft
+                # Prevent non-aircraft dictionary entries (like "robloxName", "altitude") from being parsed as callsigns
+                if type(aircraft) is not dict:
+                    continue
                 try:
                     if callsign in ACdata:
                         print(f"Processing data for aircraft {callsign}")
-                        print(ACdata[callsign])
+                        #print(ACdata[callsign])
                         ACdata[callsign].update(prev_altitude = ACdata[callsign]['altitude']) #old values are saved
                         ACdata[callsign].update(prev_heading = ACdata[callsign]['heading'])
                         ACdata[callsign].update(oldheading = ACdata[callsign]['heading'])
                         #ACdata[callsign].update(prev_time = ACdata[callsign]['time'])
                         #ACdata[callsign].update(time = time.time())
-
                         
                         ACdata[callsign].update(heading = aircraft['heading']) #New values are saved 
                         ACdata[callsign].update(groundSpeed = aircraft['groundSpeed'])
