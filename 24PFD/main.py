@@ -1,6 +1,6 @@
 import websockets
 import asyncio
-URI = "wss://24data.ptfs.app/wss"
+URI = "wss://ws.awdevhardware.org"
 import json
 import time
 import math
