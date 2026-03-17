@@ -32,7 +32,7 @@ async def handler(ws):
     while True:
         # await ws.send("hello")
         await ws.send(json.dumps(acdataws))
-        await asyncio.sleep(0.016) # Send at ~60 FPS
+        await asyncio.sleep(1) # reduced the update frequency to 1 second to reduce CPU usage
 
 async def back_front():
     server = await websockets.serve(handler, "0.0.0.0", 8765)
