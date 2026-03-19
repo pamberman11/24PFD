@@ -11,6 +11,11 @@ global erroramount2
 erroramount1 = 1
 erroramount2 = 1
 
+def remove_non_aircraft_entries(ACdata, content):
+    for ACdata[callsign] in content.items():
+        if type(ACdata[callsign]) is not dict:
+            del ACdata[callsign]
+
 def pitchmatch(oldaltitude, altitude, dt):
     global pitch_angle_degrees
     vertical_speed = (altitude - oldaltitude) / dt  # feet per second
@@ -61,6 +66,8 @@ def update_aircraftt(datatype, content, dt): #this funciton updates the aircraft
             erroramount2 += 1
             print(f"Error amount 2: {erroramount2}")
 
+    remove_non_aircraft_entries(ACdata, content)
+    
 def new_aircraft_state():
     return {
         "altitude": 0,
