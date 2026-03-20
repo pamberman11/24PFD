@@ -31,11 +31,12 @@ acdataws = {
 }
 async def handler(ws):
     print("Client connected")
-
-    while True:
-        # await ws.send("hello")
-        await ws.send(json.dumps(acdataws))
-        await asyncio.sleep(1) # reduced the update frequency to 1 second to reduce CPU usage
+    try:
+        while True:
+            await ws.send(json.dumps(acdataws))
+            await asyncio.sleep(1)
+    except websockets.exceptions.ConnectionClosed:
+        print("Client disconnected")
 
 async def back_front():
     server = await websockets.serve(handler, "0.0.0.0", 8765)

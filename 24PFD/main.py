@@ -12,16 +12,16 @@ erroramount1 = 1
 erroramount2 = 1
 
 def remove_non_aircraft_entries(ACdata, content):
-    for ACdata[callsign] in content.items():
-        if type(ACdata[callsign]) is not dict:
-            del ACdata[callsign]
 
-def pitchmatch(oldaltitude, altitude, dt):
-    global pitch_angle_degrees
-    vertical_speed = (altitude - oldaltitude) / dt  # feet per second
-    pitch_angle = vertical_speed / (ACdata['groundSpeed'] * 1.68781)  # Convert groundspeed from knots to feet per second
-    pitch_angle_degrees = pitch_angle * (180 / 3.14159)  # Convert radians to degrees
-    return pitch_angle_degrees
+    active_callsigns = set()
+
+    for callsign, aircraft in content.items():
+        if isinstance(aircraft, dict):
+            active_callsigns.add(callsign)
+
+    for callsign in list(ACdata.keys()):
+        if callsign not in active_callsigns:
+            del ACdata[callsign]
 
 def update_aircraftt(datatype, content, dt): #this funciton updates the aircraft data every second and also calculates pitch and roll angles
     #print (f"Updating aircraft {datatype} with data: {content}")
@@ -29,6 +29,7 @@ def update_aircraftt(datatype, content, dt): #this funciton updates the aircraft
         global ACdata
         global callsign
         try: 
+            remove_non_aircraft_entries(ACdata, content)
             #print("Content received:", content)
             for callsign, aircraft in content.items(): #take data for each specific aircraft
                 # Prevent non-aircraft dictionary entries (like "robloxName", "altitude") from being parsed as callsigns
@@ -40,7 +41,6 @@ def update_aircraftt(datatype, content, dt): #this funciton updates the aircraft
                         #print(ACdata[callsign])
                         ACdata[callsign].update(prev_altitude = ACdata[callsign]['altitude']) #old values are saved
                         ACdata[callsign].update(prev_heading = ACdata[callsign]['heading'])
-                        ACdata[callsign].update(oldheading = ACdata[callsign]['heading'])
                         #ACdata[callsign].update(prev_time = ACdata[callsign]['time'])
                         #ACdata[callsign].update(time = time.time())
                         
@@ -52,7 +52,9 @@ def update_aircraftt(datatype, content, dt): #this funciton updates the aircraft
                         ACdata[callsign].update(vertical_speed_fps = vertical_speed_calculation(ACdata[callsign]['altitude'], ACdata[callsign]['prev_altitude'], dt))
                         ACdata[callsign].update(forward_speed_fps = forward_speed_fps_calculation(ACdata[callsign]['groundSpeed']))
                         ACdata[callsign].update(pitch = pitch_angle_calculation(ACdata[callsign]['vertical_speed_fps'], ACdata[callsign]['forward_speed_fps']))
-                        ACdata[callsign].update(roll = bank_angle(ACdata[callsign]['heading'], ACdata[callsign]['prev_heading'], dt))
+                        ACdata[callsign].update(roll = bank_angle(
+                        ACdata[callsign]['heading'], ACdata[callsign]['prev_heading'], dt, ACdata[callsign]['forward_speed_fps'] / 1.8372 / 0.5442765  # back to studs/s
+                ))
                     else:
                         ACdata[callsign] = new_aircraft_state()
                 except Exception as e:
@@ -66,7 +68,6 @@ def update_aircraftt(datatype, content, dt): #this funciton updates the aircraft
             erroramount2 += 1
             print(f"Error amount 2: {erroramount2}")
 
-    remove_non_aircraft_entries(ACdata, content)
     
 def new_aircraft_state():
     return {
@@ -85,9 +86,7 @@ def new_aircraft_state():
     }
 
 testcallsign = "Havoc-6283"
-ACdata = {
-    "null": 0,
-}
+ACdata = {}
 dt = 1.0  # Initial delta time
 
 def vertical_speed_calculation(altitude, oldaltitude, dt):  # Calculate vertical speed in feet per second
@@ -112,20 +111,12 @@ def pitch_angle_calculation(vertical_speed_fps, forward_speed_fps):
     # print(f"Pitch Angle: {pitch_deg} degrees")
     return pitch_deg
 
-def bank_angle(heading, oldheading, dt):
-    delta_heading = (
-    (ACdata[callsign]["heading"] - ACdata[callsign]["oldheading"] + 180) % 360
-    ) - 180
-    turn_rate_deg_s = delta_heading / dt
-    turn_rate_rad_s = math.radians(turn_rate_deg_s)
-    speed_m_s = groundspeed_studs_s * 0.28
-
-    g = 9.81
-    roll_rad = math.atan((turn_rate_rad_s * speed_m_s) / g)
-    roll_deg = math.degrees(roll_rad)
-    # print(f"Roll Angle: {roll_deg} degrees")
-    #back_front_ws.set_roll(roll_deg)
-    return roll_deg
+def bank_angle(heading, oldheading, dt, speed_studs_s):
+    delta_heading = ((heading - oldheading + 180) % 360) - 180
+    turn_rate_rad_s = math.radians(delta_heading / dt)
+    speed_m_s = speed_studs_s * 0.28
+    roll_rad = math.atan((turn_rate_rad_s * speed_m_s) / 9.81)
+    return math.degrees(roll_rad)
 
 async def listen():     # Listen for incoming WebSocket messages
     print("Connecting to WebSocket server...")
@@ -144,53 +135,20 @@ async def listen():     # Listen for incoming WebSocket messages
             #)
             #bank_angle(ACdata['heading'], ACdata['oldheading'], dt)
 
-def handle_packet(raw):   # Process incoming WebSocket message
+last_update_time = 0
+UPDATE_RATE = 1.0
+
+def handle_packet(raw):
+    global last_update_time
+    now = time.time()
+    real_dt = now - last_update_time
+    if real_dt < UPDATE_RATE:
+        return
+    last_update_time = now
     data = json.loads(raw)
     for datatype, content in data.items():
-        update_aircraftt(datatype, content, dt)
+        update_aircraftt(datatype, content, real_dt)  # ← pass actual elapsed time
         back_front_ws.update_acdataws(ACdata)
-    #for datatype, content in data.items():
-        #update_aircraft(datatype, content)
-                    
-
-def update_aircraft(datatype, content): #denna funktion uppdaterar aircraft data varje sekund, ignore for now
-    #print (f"Updating aircraft {datatype} with data: {content}")
-    if datatype == "d":
-        try:
-            for callsign, aircraft in content.items(): #Tar datan från varje specifikt flygplan
-                if callsign == testcallsign:
-                    print(f"Processing data for aircraft {callsign}")
-                    print(aircraft['aircraftType'])
-                    print(aircraft['altitude'])
-                    print(aircraft['groundSpeed'])
-                    print(aircraft['heading'])
-                    print(aircraft['position']['y'])
-                    print(aircraft['position']['x'])
-                    #print(aircraft['callsign'])
-
-                    #testACdata["oldtime"] = testACdata["time"]
-                    ACdata["time"] = time.time()
-
-                    ACdata.update(oldaltitude = ACdata['altitude']) #Gamla värden sparas
-                    ACdata.update(oldgroundSpeed = ACdata['groundSpeed'])
-                    ACdata.update(oldheading = ACdata['heading'])
-                    ACdata.update(oldlatitude = ACdata['latitude'])
-                    ACdata.update(oldlongitude = ACdata['longitude'])
-                    ACdata.update(oldcallsign = ACdata['callsign'])
-
-                    ACdata.update(altitude = aircraft['altitude'])  #Nya värden sparas
-                    ACdata.update(groundSpeed = aircraft['groundSpeed'])
-                    ACdata.update(heading = aircraft['heading'])
-                    ACdata.update(latitude = aircraft['position']['y'])
-                    ACdata.update(longitude = aircraft['position']['x'])
-                    #ACdata.update(callsign = aircraft['callsign'])
-                    global dt
-                    dt = 1
-
-                    return dt
-        except Exception as e:
-            print(f"Error processing aircraft data: {e}")
-            return dt
             
 async def main():
         await asyncio.gather(listen(), back_front_ws.back_front())
