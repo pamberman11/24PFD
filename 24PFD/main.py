@@ -1,15 +1,14 @@
 import websockets
 import asyncio
-URI = "wss://ws.awdevhardware.org"
 import json
 import time
 import math
+import logging
 import back_front_ws # Import the back_front_ws module
-global erroramount1
-global erroramount2
+import config
 
-erroramount1 = 1
-erroramount2 = 1
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
 
 def remove_non_aircraft_entries(ACdata, content):
 
@@ -28,7 +27,12 @@ def update_aircraftt(datatype, content, dt): #this funciton updates the aircraft
     if datatype == "d":
         global ACdata
         global callsign
-        try: 
+        # The upstream feed reuses the "d" key for non-aircraft event types too (e.g. CONTROLLERS,
+        # whose "d" payload is a Position[] list, not AircraftData) - only dict payloads are aircraft data.
+        if not isinstance(content, dict):
+            logger.debug("Skipping non-aircraft 'd' payload (type=%s)", type(content).__name__)
+            return
+        try:
             remove_non_aircraft_entries(ACdata, content)
             #print("Content received:", content)
             for callsign, aircraft in content.items(): #take data for each specific aircraft
@@ -57,16 +61,10 @@ def update_aircraftt(datatype, content, dt): #this funciton updates the aircraft
                 ))
                     else:
                         ACdata[callsign] = new_aircraft_state()
-                except Exception as e:
-                    print(f"Error processing aircraft data: {e}")
-                    global erroramount1
-                    erroramount1 += 1
-                    print(f"Error amount 1: {erroramount1}")
-        except Exception as e:
-            global erroramount2
-            print(f"Error: {e}")
-            erroramount2 += 1
-            print(f"Error amount 2: {erroramount2}")
+                except Exception:
+                    logger.exception("Error processing aircraft data for %s", callsign)
+        except Exception:
+            logger.exception("Error updating aircraft data")
 
     
 def new_aircraft_state():
@@ -85,7 +83,6 @@ def new_aircraft_state():
         "roll": 0
     }
 
-testcallsign = "Havoc-6283"
 ACdata = {}
 dt = 1.0  # Initial delta time
 
@@ -118,31 +115,37 @@ def bank_angle(heading, oldheading, dt, speed_studs_s):
     roll_rad = math.atan((turn_rate_rad_s * speed_m_s) / 9.81)
     return math.degrees(roll_rad)
 
-async def listen():     # Listen for incoming WebSocket messages
-    print("Connecting to WebSocket server...")
-    async with websockets.connect(URI) as ws:
-        print("Connected to WebSocket server")
-        async for message in ws:
-            #print(message)
-            handle_packet(message)
-            
-                
-            #vertical_speed_calculation(ACdata['altitude'], ACdata['oldaltitude'], dt)
-            #forward_speed_fps_calculation(ACdata['groundSpeed'])
-            #pitch_angle_calculation(
-                #vertical_speed_calculation(ACdata['altitude'], ACdata['oldaltitude'], dt),
-                #forward_speed_fps_calculation(ACdata['groundSpeed'])
-            #)
-            #bank_angle(ACdata['heading'], ACdata['oldheading'], dt)
+async def listen():     # Listen for incoming WebSocket messages, reconnecting with backoff on failure
+    delay = config.RECONNECT_DELAY_INITIAL
+    while True:
+        connected_at = None
+        try:
+            logger.info("Connecting to WebSocket server...")
+            async with websockets.connect(config.WS_URI) as ws:
+                logger.info("Connected to WebSocket server")
+                connected_at = time.time()
+                async for message in ws:
+                    handle_packet(message)
+        except (websockets.exceptions.ConnectionClosed, OSError, asyncio.TimeoutError) as e:
+            logger.warning("WebSocket connection lost: %s", e)
+        except Exception:
+            logger.exception("Unexpected error in WebSocket listener")
+
+        if connected_at is not None and time.time() - connected_at >= config.STABLE_CONNECTION_THRESHOLD:
+            delay = config.RECONNECT_DELAY_INITIAL
+        else:
+            delay = min(delay * 2, config.RECONNECT_DELAY_MAX)
+
+        logger.info("Reconnecting in %.1f seconds...", delay)
+        await asyncio.sleep(delay)
 
 last_update_time = 0
-UPDATE_RATE = 1.0
 
 def handle_packet(raw):
     global last_update_time
     now = time.time()
     real_dt = now - last_update_time
-    if real_dt < UPDATE_RATE:
+    if real_dt < config.UPDATE_RATE:
         return
     last_update_time = now
     data = json.loads(raw)
@@ -154,6 +157,5 @@ async def main():
         await asyncio.gather(listen(), back_front_ws.back_front())
 
 
-print("Starting WebSocket listener...")
-#asyncio.run(listen())
+logger.info("Starting WebSocket listener...")
 asyncio.run(main())

@@ -1,27 +1,12 @@
 import websockets
 import asyncio
 import json
+import config
 
 
-
-#from main import roll_deg
 def update_acdataws(acdata):
     global acdataws
     acdataws = acdata
-    
-
-def set_pitch(pitch):
-    global acdataws
-    acdataws["pitch_angle_degrees"] = pitch
-    print(f"Pitch set to: {pitch}")
-    return pitch
-    
-def set_roll(roll):
-    global acdataws
-    roll_deg = roll
-    acdataws["roll_deg"] = roll_deg
-    print(f"Roll set to: {roll_deg}")
-    return roll_deg
 
 
 acdataws = {
@@ -39,7 +24,7 @@ async def handler(ws):
         print("Client disconnected")
 
 async def back_front():
-    server = await websockets.serve(handler, "0.0.0.0", 8765)
-    print("WS server running on port 8765")
+    server = await websockets.serve(handler, config.RELAY_HOST, config.RELAY_PORT)
+    print(f"WS server running on port {config.RELAY_PORT}")
     await server.wait_closed()
 
