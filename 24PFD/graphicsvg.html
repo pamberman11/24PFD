@@ -1,31 +1,50 @@
-<html>
+<!doctype html>
+<html lang="en">
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>24PFD</title>
 <link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script>
+  // Resolve cockpit lighting mode before first paint to avoid a flash of the wrong mode
+  (function () {
+    var stored = localStorage.getItem("lighting");
+    var mode = stored || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "night" : "day");
+    document.documentElement.setAttribute("data-theme", mode);
+  })();
+</script>
 </head>
 <body>
 
-<!--<h1>This will be a pfd in the foreseeable future</h1>-->
+<div class="app">
+  <header class="app-header">
+    <div class="title-block">
+      <h1 class="app-title">24PFD</h1>
+      <p class="app-subtitle">Primary Flight Display</p>
+    </div>
+    <button id="lightingToggle" class="lighting-toggle" aria-label="Toggle panel lighting" onclick="toggleLighting()">
+      <span class="lighting-toggle-label" id="dayLabel">DAY</span>
+      <span class="lighting-toggle-track"><span class="thumb"></span></span>
+      <span class="lighting-toggle-label" id="nightLabel">NIGHT</span>
+    </button>
+  </header>
 
-<!--<label>Callsign:</label>-->
+  <div class="layout">
+    <aside class="panel">
+      <h3>Select aircraft</h3>
 
- <!--<input id="callsignInput" type="text" placeholder="Apollo-3935">
-<button onclick="setCallsign()">Visa</button>
--->
-<div class="panel">
-  <h3>Select aircraft</h3>
+      <label for="callsignSelect">Callsign</label>
+      <select id="callsignSelect" class="custom-select" onchange="setCallsign()">
+        <option value="" disabled selected>SELECT</option>
+      </select>
+    </aside>
 
-  <label>Callsign</label>
-  <select id="callsignSelect" class="custom-select" onchange="setCallsign()">
-    <option value="" disabled selected>SELECT</option>
-  </select>
-</div>
-
-
-<div class="pfd-container" style="width: 40%; height: 40%;">
-  <svg width="100%" height="auto"
-      viewBox="-400 -400 880 800"
-      style="border:1px solid black; background:gray">
+    <main class="pfd-frame">
+      <svg width="100%" height="auto" viewBox="-400 -400 880 800">
 
     <g id="attitude">
 
@@ -83,7 +102,7 @@
       
       <!-- Center pointer -->
       <polygon points="10,280 60,280 80,300 60,320 10,320" fill="black" stroke="cyan" stroke-width="2"/>
-      <text id="speed_text" x="35" y="308" fill="white" font-family="sans-serif" font-size="20" font-weight="bold" text-anchor="middle">0</text>
+      <text id="speed_text" x="35" y="308" fill="white" font-size="20" font-weight="bold" text-anchor="middle">0</text>
     </g>
 
     <!-- Alt Tape (Right) -->
@@ -102,7 +121,7 @@
       
       <!-- Center pointer -->
       <polygon points="70,280 20,280 0,300 20,320 70,320" fill="black" stroke="cyan" stroke-width="2"/>
-      <text id="alt_text" x="45" y="308" fill="white" font-family="sans-serif" font-size="20" font-weight="bold" text-anchor="middle">0</text>
+      <text id="alt_text" x="45" y="308" fill="white" font-size="20" font-weight="bold" text-anchor="middle">0</text>
     </g>
 
     <!-- Vertical Speed Indicator (Right of Altitude Tape) -->
@@ -121,7 +140,7 @@
 
       <!-- Center pointer -->
       <polygon points="50,280 15,280 0,300 15,320 50,320" fill="black" stroke="cyan" stroke-width="2"/>
-      <text id="vsi_text" x="25" y="308" fill="white" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="middle">0</text>
+      <text id="vsi_text" x="25" y="308" fill="white" font-size="14" font-weight="bold" text-anchor="middle">0</text>
     </g>
 
     <!-- Heading Tape (Bottom) -->
@@ -140,44 +159,63 @@
       <!-- Center pointer -->
       <line x1="250" y1="0" x2="250" y2="15" stroke="gold" stroke-width="3"/>
       <rect x="225" y="20" width="50" height="25" fill="black"/>
-      <text id="hdg_text" x="250" y="38" fill="gold" font-family="sans-serif" font-size="16" font-weight="bold" text-anchor="middle">000</text>
+      <text id="hdg_text" x="250" y="38" fill="gold" font-size="16" font-weight="bold" text-anchor="middle">000</text>
     </g>
 
     <!-- Per-instrument failure flags: shown when the selected aircraft has stopped sending data -->
     <g id="fail_flags">
       <g id="flag_att" style="display:none">
         <rect x="-150" y="-40" width="300" height="80" fill="red" fill-opacity="0.6"/>
-        <text x="0" y="10" fill="white" font-family="sans-serif" font-size="28" font-weight="bold" text-anchor="middle">ATT FAIL</text>
+        <text x="0" y="10" fill="white" font-size="28" font-weight="bold" text-anchor="middle">ATT FAIL</text>
       </g>
       <g id="flag_spd" style="display:none" transform="translate(-390, -300)">
         <rect x="0" y="270" width="80" height="60" fill="red" fill-opacity="0.6"/>
-        <text x="40" y="308" fill="white" font-family="sans-serif" font-size="16" font-weight="bold" text-anchor="middle">SPD</text>
+        <text x="40" y="308" fill="white" font-size="16" font-weight="bold" text-anchor="middle">SPD</text>
       </g>
       <g id="flag_alt" style="display:none" transform="translate(310, -300)">
         <rect x="0" y="270" width="80" height="60" fill="red" fill-opacity="0.6"/>
-        <text x="40" y="308" fill="white" font-family="sans-serif" font-size="16" font-weight="bold" text-anchor="middle">ALT</text>
+        <text x="40" y="308" fill="white" font-size="16" font-weight="bold" text-anchor="middle">ALT</text>
       </g>
       <g id="flag_hdg" style="display:none" transform="translate(-250, 340)">
         <rect x="0" y="0" width="500" height="60" fill="red" fill-opacity="0.6"/>
-        <text x="250" y="38" fill="white" font-family="sans-serif" font-size="16" font-weight="bold" text-anchor="middle">HDG FAIL</text>
+        <text x="250" y="38" fill="white" font-size="16" font-weight="bold" text-anchor="middle">HDG FAIL</text>
       </g>
+    </g>
+
+    <!-- Empty state: shown until the pilot picks a callsign, so first load reads as
+         "waiting for input" rather than a frozen instrument sitting at all zeros -->
+    <g id="no_aircraft_prompt">
+      <rect x="-150" y="-40" width="300" height="80" fill="black" fill-opacity="0.7"/>
+      <text x="0" y="10" fill="cyan" font-size="24" font-weight="bold" text-anchor="middle">SELECT AIRCRAFT</text>
     </g>
 
     <!-- Whole-panel failure banner: shown when the relay WebSocket connection itself is down -->
     <g id="pfd_fail_banner" style="display:none">
       <rect x="-400" y="-400" width="880" height="800" fill="orange" fill-opacity="0.35"/>
-      <text x="40" y="0" fill="black" font-family="sans-serif" font-size="48" font-weight="bold" text-anchor="middle">PFD FAIL</text>
+      <text x="40" y="0" fill="black" font-size="48" font-weight="bold" text-anchor="middle">PFD FAIL</text>
     </g>
   </svg>
+    </main>
+  </div>
 </div>
 
-<style>
-
-  @import url("styles");
-
-</style>
-
 <script>
+
+function applyLightingLabels() {
+  const mode = document.documentElement.getAttribute("data-theme");
+  document.getElementById("dayLabel").classList.toggle("active", mode === "day");
+  document.getElementById("nightLabel").classList.toggle("active", mode === "night");
+}
+
+function toggleLighting() {
+  const root = document.documentElement;
+  const next = root.getAttribute("data-theme") === "night" ? "day" : "night";
+  root.setAttribute("data-theme", next);
+  localStorage.setItem("lighting", next);
+  applyLightingLabels();
+}
+
+applyLightingLabels();
 
 function setCallsign() {
   activeCallsign = document.getElementById("callsignSelect").value;
@@ -201,13 +239,6 @@ let activeCallsign = null;
 let lastActiveDataTime = null;
 let wsConnected = false;
 const STALE_DATA_MS = 3000; // ~3x the backend's default 1s update rate
-
- // function handleData(data) {
-  //aircraftState.pitch = data.pitch;
-  //aircraftState.roll  = data.roll;
-  //aircraftState.heading = data.heading;
-  //aircraftState.altitude = data.altitude;
-//}
 
 let aircraftState = {
   pitch: 0,
@@ -348,13 +379,13 @@ function updateTape(group, value, scale, majorStep, minorStep, isRight) {
       // right tape (Altitude)
       html += `<line x1="0" y1="${y}" x2="${tickLen}" y2="${y}" stroke="white" stroke-width="2"/>`;
       if (isMajor) {
-        html += `<text x="${tickLen + 5}" y="${y + 6}" fill="white" font-family="sans-serif" font-size="16" font-weight="bold">${v}</text>`;
+        html += `<text x="${tickLen + 5}" y="${y + 6}" fill="white" font-size="16" font-weight="bold">${v}</text>`;
       }
     } else {
       // left tape (Speed)
       html += `<line x1="${80 - tickLen}" y1="${y}" x2="80" y2="${y}" stroke="white" stroke-width="2"/>`;
       if (isMajor) {
-        html += `<text x="${80 - tickLen - 5}" y="${y + 6}" fill="white" font-family="sans-serif" font-size="16" font-weight="bold" text-anchor="end">${v}</text>`;
+        html += `<text x="${80 - tickLen - 5}" y="${y + 6}" fill="white" font-size="16" font-weight="bold" text-anchor="end">${v}</text>`;
       }
     }
   }
@@ -385,7 +416,7 @@ function updateHdgTape(group, value, scale, majorStep, minorStep) {
       else if (displayHeading === 270) label = "W";
       else label = String(displayHeading).padStart(3, '0');
       
-      html += `<text x="${x}" y="${tickLen + 15}" fill="white" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="middle">${label}</text>`;
+      html += `<text x="${x}" y="${tickLen + 15}" fill="white" font-size="14" font-weight="bold" text-anchor="middle">${label}</text>`;
     }
   }
   group.innerHTML = html;
@@ -423,14 +454,17 @@ const failFlagIds = ["flag_att", "flag_spd", "flag_alt", "flag_hdg"];
 
 function updateFailFlags() {
   const pfdFailBanner = document.getElementById("pfd_fail_banner");
+  const noAircraftPrompt = document.getElementById("no_aircraft_prompt");
 
   if (!wsConnected) {
     // Relay connection itself is down - nothing on the panel is trustworthy
     pfdFailBanner.style.display = "block";
+    noAircraftPrompt.style.display = "none";
     failFlagIds.forEach(id => document.getElementById(id).style.display = "none");
     return;
   }
   pfdFailBanner.style.display = "none";
+  noAircraftPrompt.style.display = activeCallsign ? "none" : "block";
 
   const stale = activeCallsign && lastActiveDataTime !== null &&
     (Date.now() - lastActiveDataTime) > STALE_DATA_MS;
@@ -463,15 +497,6 @@ function renderLoop() {
 }
 
 requestAnimationFrame(renderLoop);
-
-//setInterval(() => {   For testing without backend
-    //aircraftState.pitch -= 0.3;
-    //aircraftState.roll += 0.1;
-    //aircraftState.pitch = Math.max(-30, Math.min(30, aircraftState.pitch));
-    //aircraftState.roll = Math.max(-30, Math.min(30, aircraftState.roll));
-    //update();
-    
-//}, 50);
 
 </script>
 </body>

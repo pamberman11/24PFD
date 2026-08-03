@@ -1,64 +1,312 @@
+/* Panel lighting: "day" = bright cockpit lighting (default), "night" = dimmed red/amber
+   night lighting, mirroring how real cockpit displays dim for night flying. */
+:root {
+  --bg: #202226;
+  --panel: #2b2e34;
+  --panel-border: #4a4d55;
+  --recess: #0a0b0d;
+  --text: #e8eaed;
+  --text-muted: #8a8d94;
+  --ecam-white: #f2f2f2;
+  --ecam-green: #00e676;
+  --ecam-cyan: #29d3ff;
+  --ecam-amber: #ffb300;
+  --ecam-red: #ff3b30;
+  --ecam-magenta: #ff33cc;
+  --font-display: 'B612', 'Consolas', monospace;
+  --font-mono: 'B612 Mono', 'Consolas', 'JetBrains Mono', monospace;
+  --bezel-highlight: rgba(180, 190, 210, 0.05);
+  --bezel-shadow: rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d0906;
+    --panel: #171310;
+    --panel-border: #2e2318;
+    --recess: #050403;
+    --text: #d9b98c;
+    --text-muted: #7a624a;
+    --ecam-white: #d9b98c;
+    --ecam-green: #2e8f57;
+    --ecam-cyan: #2a7fa0;
+    --ecam-amber: #b8791f;
+    --ecam-red: #a5342a;
+    --ecam-magenta: #a1327d;
+    --bezel-highlight: rgba(210, 160, 100, 0.05);
+    --bezel-shadow: rgba(0, 0, 0, 0.5);
+  }
+}
+
+:root[data-theme="night"] {
+  --bg: #0d0906;
+  --panel: #171310;
+  --panel-border: #2e2318;
+  --recess: #050403;
+  --text: #d9b98c;
+  --text-muted: #7a624a;
+  --ecam-white: #d9b98c;
+  --ecam-green: #2e8f57;
+  --ecam-cyan: #2a7fa0;
+  --ecam-amber: #b8791f;
+  --ecam-red: #a5342a;
+  --ecam-magenta: #a1327d;
+  --bezel-highlight: rgba(210, 160, 100, 0.05);
+  --bezel-shadow: rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="day"] {
+  --bg: #202226;
+  --panel: #2b2e34;
+  --panel-border: #4a4d55;
+  --recess: #0a0b0d;
+  --text: #e8eaed;
+  --text-muted: #8a8d94;
+  --ecam-white: #f2f2f2;
+  --ecam-green: #00e676;
+  --ecam-cyan: #29d3ff;
+  --ecam-amber: #ffb300;
+  --ecam-red: #ff3b30;
+  --ecam-magenta: #ff33cc;
+  --bezel-highlight: rgba(180, 190, 210, 0.05);
+  --bezel-shadow: rgba(0, 0, 0, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
 body {
-  background-color: gray;
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-display);
+  min-height: 100vh;
+  transition: background-color 200ms, color 200ms;
 }
-.pfd-container {
+
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.app-header {
   display: flex;
-  gap: 30px;
-  padding: 30px;
-}
-input, button, select {
-  width: 100%;
-  padding: 8px;
-  margin-top: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  row-gap: 8px;
+  padding: 14px 20px;
+  margin-bottom: 24px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
   border-radius: 4px;
-  border: none;
+  box-shadow: inset 0 1px 0 var(--bezel-highlight), inset 0 -1px 0 var(--bezel-shadow);
 }
 
-button {
-  background: #4caf50;
-  color: white;
-  cursor: pointer;
+.title-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
 }
 
-button:hover {
-  background: #45a049;
+.app-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.3rem;
+  letter-spacing: 0.06em;
+  color: var(--ecam-white);
+  margin: 0;
 }
+
+.app-subtitle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ecam-cyan);
+  margin: 0;
+}
+
+.layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+/* Aircraft select - styled like an FCU selector panel */
 .panel {
-  background: #1e1e1e;
-  color: white;
-  padding: 20px;
-  border-radius: 12px;
-  width: 250px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  padding: 18px;
+  width: 220px;
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 0 var(--bezel-highlight), inset 0 -1px 0 var(--bezel-shadow);
 }
+
+.panel h3 {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 14px;
+}
+
+.panel label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
 .custom-select {
-  background-color: #2d2d2d;
-  color: #00ff00; /* Green text for selected */
-  border: 1px solid #555;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 2px;
+  border: 1px solid var(--panel-border);
+  background: var(--recess);
+  color: var(--ecam-green);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.04em;
   outline: none;
-  font-family: sans-serif;
-  font-weight: bold;
+  cursor: pointer;
+  transition: border-color 160ms, box-shadow 160ms;
 }
+
+.custom-select:hover {
+  border-color: var(--ecam-green);
+}
+
+.custom-select:focus-visible {
+  border-color: var(--ecam-cyan);
+  box-shadow: 0 0 0 2px rgba(41, 211, 255, 0.25);
+}
+
+.custom-select:active {
+  transform: translateY(1px);
+}
+
 .custom-select option {
-  background-color: #2d2d2d;
-  color: #00ff00; /* Green text for options */
-  padding: 5px;
+  background: var(--recess);
+  color: var(--ecam-green);
 }
-.custom-select option[value=""] {
-  color: white; /* Make 'SELECT' white */
+
+/* Instrument bezel - a physical-looking metal frame around the SVG PFD face.
+   The instrument face itself keeps its own functional aviation colors (unaffected by
+   day/night lighting) - only the surrounding bezel dims with cockpit lighting. */
+.pfd-frame {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  padding: 14px;
+  flex: 1 1 480px;
+  min-width: 320px;
+  box-shadow: inset 0 1px 0 var(--bezel-highlight), inset 0 -2px 0 var(--bezel-shadow);
 }
-svg {
+
+.pfd-frame svg {
+  display: block;
+  width: 100%;
+  height: auto;
   background: black;
-  border: 4px solid #555;
-  border-radius: 12px;
-}
-h1 {
-  margin-top: 30px;
-  display: flex;
-  justify-content: top;
+  border-radius: 3px;
+  border: 1px solid var(--recess);
 }
 
-body {
-  display: flex;
-  justify-content: left;
+/* Instrument readouts share one typographic identity - set once here instead of
+   repeating font-family on every SVG text element (inline attribute or JS template) */
+.pfd-frame svg text {
+  font-family: var(--font-mono);
+  font-weight: 700;
 }
 
+/* "No aircraft selected" prompt - shown on the instrument face before a callsign is
+   chosen, so first load reads as "waiting for input" rather than a frozen/broken panel */
+#no_aircraft_prompt text {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+/* Day/Night cockpit lighting toggle - a rocker switch, not a generic theme pill */
+.lighting-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 4px;
+  margin: -4px;
+  border-radius: 2px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  transition: background-color 160ms;
+}
+
+.lighting-toggle:hover {
+  background-color: var(--bezel-highlight);
+}
+
+.lighting-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 179, 0, 0.35);
+}
+
+.lighting-toggle:active .lighting-toggle-track {
+  transform: scale(0.96);
+}
+
+.lighting-toggle-track {
+  position: relative;
+  width: 40px;
+  height: 20px;
+  border-radius: 2px;
+  border: 1px solid var(--panel-border);
+  background: var(--recess);
+  transition: transform 120ms;
+}
+
+.lighting-toggle .thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 1px;
+  background: var(--ecam-amber);
+  transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+:root[data-theme="night"] .lighting-toggle .thumb {
+  transform: translateX(18px);
+  background: var(--ecam-red);
+}
+
+.lighting-toggle-label.active {
+  color: var(--ecam-amber);
+}
