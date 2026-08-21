@@ -50,15 +50,25 @@ def update_aircraftt(datatype, content, dt): #this funciton updates the aircraft
                         
                         ACdata[callsign].update(heading = aircraft['heading']) #New values are saved 
                         ACdata[callsign].update(groundSpeed = aircraft['groundSpeed'])
-                        ACdata[callsign].update(altitude = aircraft['altitude'])  
+                        # "speed" is the sim's indicated airspeed (IAS) - a separate field from groundSpeed,
+                        # which is groundSpeed derived from position deltas and affected by wind.
+                        ACdata[callsign].update(ias = aircraft.get('speed', aircraft['groundSpeed']))
+                        ACdata[callsign].update(altitude = aircraft['altitude'])
+                        ACdata[callsign].update(onGround = bool(aircraft.get('isOnGround', False)))
 
                         #Devrided 
                         ACdata[callsign].update(vertical_speed_fps = vertical_speed_calculation(ACdata[callsign]['altitude'], ACdata[callsign]['prev_altitude'], dt))
+                        # All flight-dynamics calcs (pitch, bank) use groundSpeed - the actual speed the
+                        # aircraft is moving over the ground - not indicated airspeed.
                         ACdata[callsign].update(forward_speed_fps = forward_speed_fps_calculation(ACdata[callsign]['groundSpeed']))
                         ACdata[callsign].update(pitch = pitch_angle_calculation(ACdata[callsign]['vertical_speed_fps'], ACdata[callsign]['forward_speed_fps']))
-                        ACdata[callsign].update(roll = bank_angle(
-                        ACdata[callsign]['heading'], ACdata[callsign]['prev_heading'], dt, ACdata[callsign]['forward_speed_fps'] / 1.8372 / 0.5442765  # back to studs/s
-                ))
+                        if ACdata[callsign]['onGround']:
+                            # Don't bank the attitude indicator for heading changes while taxiing/turning on the ground
+                            ACdata[callsign].update(roll = 0)
+                        else:
+                            ACdata[callsign].update(roll = bank_angle(
+                            ACdata[callsign]['heading'], ACdata[callsign]['prev_heading'], dt, ACdata[callsign]['forward_speed_fps'] / 1.8372 / 0.5442765  # back to studs/s
+                    ))
                     else:
                         ACdata[callsign] = new_aircraft_state()
                 except Exception:
@@ -72,6 +82,8 @@ def new_aircraft_state():
         "altitude": 0,
         "heading": 0,
         "groundSpeed": 0,
+        "ias": 0,
+        "onGround": False,
 
         "prev_altitude": 0,
         "prev_heading": 0,

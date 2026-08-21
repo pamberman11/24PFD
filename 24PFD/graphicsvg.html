@@ -225,6 +225,7 @@ function setCallsign() {
   smoothState.roll = 0;
   smoothState.altitude = 0;
   smoothState.groundSpeed = 0;
+  smoothState.ias = 0;
   smoothState.verticalSpeed = 0;
 
 
@@ -246,6 +247,7 @@ let aircraftState = {
   heading: 0,
   altitude: 0,
   groundSpeed: 0,
+  ias: 0,
   verticalSpeed: 0
 };
 
@@ -255,6 +257,7 @@ let smoothState = {
   heading: 0,
   altitude: 0,
   groundSpeed: 0,
+  ias: 0,
   verticalSpeed: 0
 };
 
@@ -342,6 +345,7 @@ ws.onmessage = (event) => {  // Tar hand om inkommande meddelanden
   aircraftState.roll  = data[activeCallsign].roll || 0;
   aircraftState.altitude = data[activeCallsign].altitude || 0;
   aircraftState.groundSpeed = data[activeCallsign].groundSpeed || 0;
+  aircraftState.ias = data[activeCallsign].ias || 0;
   aircraftState.heading = data[activeCallsign].heading || 0;
   // Backend sends vertical speed in feet per second; convert to feet per minute for display
   aircraftState.verticalSpeed = (data[activeCallsign].vertical_speed_fps || 0) * 60;
@@ -425,14 +429,16 @@ function updateHdgTape(group, value, scale, majorStep, minorStep) {
 function update() {
   const pitch_px = smoothState.pitch * PX_PER_DEG;
 
+  // Roll rotation is inverted: a positive (right) bank must rotate the horizon
+  // counter-clockwise so the airplane symbol appears banked right relative to it.
   attitude.setAttribute(
     "transform",
-    `translate(0, ${pitch_px}) rotate(${smoothState.roll})`
+    `translate(0, ${pitch_px}) rotate(${-smoothState.roll})`
   );
 
-  // Update speed tape (5 units per mark, 20 per text label, scale)
-  updateTape(document.getElementById("speed_tape"), smoothState.groundSpeed, 3, 20, 10, false);
-  document.getElementById("speed_text").textContent = Math.round(smoothState.groundSpeed);
+  // Update speed tape (IAS - indicated airspeed, not groundspeed)
+  updateTape(document.getElementById("speed_tape"), smoothState.ias, 3, 20, 10, false);
+  document.getElementById("speed_text").textContent = Math.round(smoothState.ias);
 
   // Update altitude tape (10 units per mark, 100 per text label, scale)
   updateTape(document.getElementById("alt_tape"), smoothState.altitude, 1.5, 100, 20, true);
@@ -479,6 +485,7 @@ function renderLoop() {
   smoothState.roll += (aircraftState.roll - smoothState.roll) * factor;
   smoothState.altitude += (aircraftState.altitude - smoothState.altitude) * factor;
   smoothState.groundSpeed += (aircraftState.groundSpeed - smoothState.groundSpeed) * factor;
+  smoothState.ias += (aircraftState.ias - smoothState.ias) * factor;
   smoothState.verticalSpeed += (aircraftState.verticalSpeed - smoothState.verticalSpeed) * factor;
 
   // Angular interpolation for heading (handles 0-359 wrap around)
