@@ -169,5 +169,6 @@ async def main():
         await asyncio.gather(listen(), back_front_ws.back_front())
 
 
-logger.info("Starting WebSocket listener...")
-asyncio.run(main())
+if __name__ == "__main__":
+    logger.info("Starting WebSocket listener...")
+    asyncio.run(main())
