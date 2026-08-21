@@ -196,6 +196,49 @@
     </g>
   </svg>
     </main>
+
+    <main class="nd-frame">
+      <svg width="100%" height="auto" viewBox="-300 -300 600 600">
+
+        <!-- Range rings: fixed, non-rotating reference circles -->
+        <circle cx="0" cy="0" r="100" fill="none" stroke="#2a3a2a" stroke-width="1" stroke-dasharray="4 4"/>
+        <circle cx="0" cy="0" r="200" fill="none" stroke="#2a3a2a" stroke-width="1" stroke-dasharray="4 4"/>
+        <circle cx="0" cy="0" r="280" fill="none" stroke="#2a3a2a" stroke-width="1"/>
+
+        <!-- Compass rose: rotates opposite to heading so the top always reads current heading (heading-up ND) -->
+        <g id="nd_rose"></g>
+
+        <!-- Lubber line / heading index at the top of the rose -->
+        <polygon points="0,-280 -8,-262 8,-262" fill="cyan"/>
+
+        <!-- Aircraft symbol: fixed at center, this display never rotates the airplane itself -->
+        <g id="nd_aircraft_symbol">
+          <polygon points="0,-20 -12,16 0,7 12,16" fill="yellow" stroke="black" stroke-width="1"/>
+        </g>
+
+        <!-- Digital heading readout -->
+        <g transform="translate(0, -296)">
+          <rect x="-38" y="-16" width="76" height="26" fill="black" stroke="cyan" stroke-width="2"/>
+          <text id="nd_hdg_text" x="0" y="4" fill="cyan" font-size="20" font-weight="bold" text-anchor="middle">000</text>
+        </g>
+
+        <!-- Ground speed / track readouts -->
+        <text id="nd_gs_text" x="-270" y="270" fill="#00e676" font-size="18" font-weight="bold">GS 0</text>
+        <text id="nd_trk_text" x="120" y="270" fill="#00e676" font-size="18" font-weight="bold">TRK 000</text>
+
+        <!-- Empty state: mirrors the PFD's "waiting for input" prompt -->
+        <g id="nd_no_aircraft_prompt">
+          <rect x="-150" y="-20" width="300" height="40" fill="black" fill-opacity="0.7"/>
+          <text x="0" y="6" fill="cyan" font-size="22" font-weight="bold" text-anchor="middle">SELECT AIRCRAFT</text>
+        </g>
+
+        <!-- Whole-panel failure banner: shown when the relay WebSocket connection itself is down -->
+        <g id="nd_fail_banner" style="display:none">
+          <rect x="-300" y="-300" width="600" height="600" fill="orange" fill-opacity="0.35"/>
+          <text x="0" y="0" fill="black" font-size="40" font-weight="bold" text-anchor="middle">ND FAIL</text>
+        </g>
+      </svg>
+    </main>
   </div>
 </div>
 
@@ -426,6 +469,56 @@ function updateHdgTape(group, value, scale, majorStep, minorStep) {
   group.innerHTML = html;
 }
 
+const ndRose = document.getElementById("nd_rose");
+let ndRoseBuilt = false;
+
+// Compass rose is drawn once (static geometry) and then just rotated each frame -
+// far cheaper than regenerating 36 ticks/labels every render tick.
+function buildNdRose() {
+  let html = "";
+  for (let deg = 0; deg < 360; deg += 10) {
+    const isMajor = deg % 30 === 0;
+    const rOuter = 280;
+    const rInner = isMajor ? 260 : 270;
+    const rad = (deg * Math.PI) / 180;
+    const x1 = rOuter * Math.sin(rad);
+    const y1 = -rOuter * Math.cos(rad);
+    const x2 = rInner * Math.sin(rad);
+    const y2 = -rInner * Math.cos(rad);
+    html += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="white" stroke-width="2"/>`;
+
+    if (isMajor) {
+      let label = String(deg).padStart(3, "0").slice(0, 2) + "0";
+      if (deg === 0) label = "N";
+      else if (deg === 90) label = "E";
+      else if (deg === 180) label = "S";
+      else if (deg === 270) label = "W";
+      const rLabel = 240;
+      const xl = rLabel * Math.sin(rad);
+      const yl = -rLabel * Math.cos(rad);
+      html += `<text x="${xl.toFixed(1)}" y="${yl.toFixed(1)}" fill="white" font-size="18" font-weight="bold" text-anchor="middle" dominant-baseline="middle" transform="rotate(${deg}, ${xl.toFixed(1)}, ${yl.toFixed(1)})">${label}</text>`;
+    }
+  }
+  ndRose.innerHTML = html;
+  ndRoseBuilt = true;
+}
+
+function updateNd() {
+  if (!ndRoseBuilt) buildNdRose();
+  // Heading-up ND: rotate the rose backwards by the current heading so North
+  // stays correctly oriented while the top of the display always shows heading.
+  ndRose.setAttribute("transform", `rotate(${-smoothState.heading})`);
+
+  let hdgLabel = Math.round(smoothState.heading);
+  if (hdgLabel === 360) hdgLabel = 0;
+  document.getElementById("nd_hdg_text").textContent = String(hdgLabel).padStart(3, "0");
+
+  document.getElementById("nd_gs_text").textContent = `GS ${Math.round(smoothState.groundSpeed)}`;
+  // No separate track data from the backend yet - heading is used as a stand-in until
+  // wind-corrected track is available from upstream.
+  document.getElementById("nd_trk_text").textContent = `TRK ${String(hdgLabel).padStart(3, "0")}`;
+}
+
 function update() {
   const pitch_px = smoothState.pitch * PX_PER_DEG;
 
@@ -454,6 +547,8 @@ function update() {
   let hdgLabel = Math.round(smoothState.heading);
   if (hdgLabel === 360) hdgLabel = 0;
   document.getElementById("hdg_text").textContent = String(hdgLabel).padStart(3, '0');
+
+  updateNd();
 }
 
 const failFlagIds = ["flag_att", "flag_spd", "flag_alt", "flag_hdg"];
@@ -461,16 +556,22 @@ const failFlagIds = ["flag_att", "flag_spd", "flag_alt", "flag_hdg"];
 function updateFailFlags() {
   const pfdFailBanner = document.getElementById("pfd_fail_banner");
   const noAircraftPrompt = document.getElementById("no_aircraft_prompt");
+  const ndFailBanner = document.getElementById("nd_fail_banner");
+  const ndNoAircraftPrompt = document.getElementById("nd_no_aircraft_prompt");
 
   if (!wsConnected) {
     // Relay connection itself is down - nothing on the panel is trustworthy
     pfdFailBanner.style.display = "block";
     noAircraftPrompt.style.display = "none";
     failFlagIds.forEach(id => document.getElementById(id).style.display = "none");
+    ndFailBanner.style.display = "block";
+    ndNoAircraftPrompt.style.display = "none";
     return;
   }
   pfdFailBanner.style.display = "none";
   noAircraftPrompt.style.display = activeCallsign ? "none" : "block";
+  ndFailBanner.style.display = "none";
+  ndNoAircraftPrompt.style.display = activeCallsign ? "none" : "block";
 
   const stale = activeCallsign && lastActiveDataTime !== null &&
     (Date.now() - lastActiveDataTime) > STALE_DATA_MS;

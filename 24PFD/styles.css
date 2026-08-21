@@ -235,6 +235,33 @@ body {
   border: 1px solid var(--recess);
 }
 
+/* Navigation Display - shares the same physical bezel treatment as the PFD, sits
+   alongside it once the layout has room (wraps below on narrow viewports). */
+.nd-frame {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  padding: 14px;
+  flex: 1 1 380px;
+  min-width: 280px;
+  max-width: 420px;
+  box-shadow: inset 0 1px 0 var(--bezel-highlight), inset 0 -2px 0 var(--bezel-shadow);
+}
+
+.nd-frame svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: black;
+  border-radius: 3px;
+  border: 1px solid var(--recess);
+}
+
+.nd-frame svg text {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
 /* Instrument readouts share one typographic identity - set once here instead of
    repeating font-family on every SVG text element (inline attribute or JS template) */
 .pfd-frame svg text {
