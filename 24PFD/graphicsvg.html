@@ -253,6 +253,7 @@ function filterCallsigns() {
 
   Array.from(select.options).forEach((opt) => {
     if (opt.value === "") return; // keep the "SELECT" placeholder always visible
+    if (opt.value === active) return; // never toggle the currently selected option hidden
     opt.hidden = query !== "" && !opt.value.toUpperCase().includes(query);
   });
 
@@ -342,6 +343,7 @@ ws.onmessage = (event) => {  // Tar hand om inkommande meddelanden
 
   
   const select = document.getElementById("callsignSelect");
+  let addedCallsign = false;
   Object.keys(data).forEach(callsign => {
    
     const isLikelyCallsign = /^[A-Z].*-/.test(callsign);
@@ -358,11 +360,15 @@ ws.onmessage = (event) => {  // Tar hand om inkommande meddelanden
       opt.value = callsign;
       opt.textContent = callsign;
       select.appendChild(opt);
+      addedCallsign = true;
     }
   });
 
-  // Re-apply the active search filter so newly-spawned aircraft respect it too.
-  filterCallsigns();
+  const query = document.getElementById("callsignSearch").value.trim();
+  if (addedCallsign && query !== "") {
+    // Re-apply the active search filter so newly-spawned aircraft respect it too.
+    filterCallsigns();
+  }
 
   if (!activeCallsign) return;
   if (!data[activeCallsign]) return;
