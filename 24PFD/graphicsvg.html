@@ -37,6 +37,11 @@
     <aside class="panel">
       <h3>Select aircraft</h3>
 
+      <label for="callsignSearch">Search</label>
+      <input type="text" id="callsignSearch" class="callsign-search"
+             placeholder="TYPE TO FILTER…" autocomplete="off" spellcheck="false"
+             aria-label="Filter callsigns" oninput="filterCallsigns()">
+
       <label for="callsignSelect">Callsign</label>
       <select id="callsignSelect" class="custom-select" onchange="setCallsign()">
         <option value="" disabled selected>SELECT</option>
@@ -241,6 +246,25 @@ let lastActiveDataTime = null;
 let wsConnected = false;
 const STALE_DATA_MS = 3000; // ~3x the backend's default 1s update rate
 
+function filterCallsigns() {
+  const query = document.getElementById("callsignSearch").value.trim().toUpperCase();
+  const select = document.getElementById("callsignSelect");
+  const active = select.value;
+
+  Array.from(select.options).forEach((opt) => {
+    if (opt.value === "") return; // keep the "SELECT" placeholder always visible
+    if (opt.value === active) return; // never toggle the currently selected option hidden
+    opt.hidden = query !== "" && !opt.value.toUpperCase().includes(query);
+  });
+
+  // Never hide the callsign currently on the PFD, so searching for a new aircraft
+  // can't silently deselect the one already being tracked.
+  if (active) {
+    const activeOpt = Array.from(select.options).find((o) => o.value === active);
+    if (activeOpt) activeOpt.hidden = false;
+  }
+}
+
 let aircraftState = {
   pitch: 0,
   roll: 0,
@@ -319,6 +343,7 @@ ws.onmessage = (event) => {  // Tar hand om inkommande meddelanden
 
   
   const select = document.getElementById("callsignSelect");
+  let addedCallsign = false;
   Object.keys(data).forEach(callsign => {
    
     const isLikelyCallsign = /^[A-Z].*-/.test(callsign);
@@ -335,8 +360,15 @@ ws.onmessage = (event) => {  // Tar hand om inkommande meddelanden
       opt.value = callsign;
       opt.textContent = callsign;
       select.appendChild(opt);
+      addedCallsign = true;
     }
   });
+
+  const query = document.getElementById("callsignSearch").value.trim();
+  if (addedCallsign && query !== "") {
+    // Re-apply the active search filter so newly-spawned aircraft respect it too.
+    filterCallsigns();
+  }
 
   if (!activeCallsign) return;
   if (!data[activeCallsign]) return;

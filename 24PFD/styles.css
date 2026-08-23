@@ -213,6 +213,39 @@ body {
   color: var(--ecam-green);
 }
 
+/* Callsign search field - matches the FCU selector styling so the two controls
+   read as one unit; the text color is cyan to signal it's a type-in filter, not
+   a value display. */
+.callsign-search {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  border-radius: 2px;
+  border: 1px solid var(--panel-border);
+  background: var(--recess);
+  color: var(--ecam-cyan);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  outline: none;
+  transition: border-color 160ms, box-shadow 160ms;
+}
+
+.callsign-search::placeholder {
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.callsign-search:hover {
+  border-color: var(--ecam-cyan);
+}
+
+.callsign-search:focus-visible {
+  border-color: var(--ecam-cyan);
+  box-shadow: 0 0 0 2px rgba(41, 211, 255, 0.25);
+}
+
 /* Instrument bezel - a physical-looking metal frame around the SVG PFD face.
    The instrument face itself keeps its own functional aviation colors (unaffected by
    day/night lighting) - only the surrounding bezel dims with cockpit lighting. */
